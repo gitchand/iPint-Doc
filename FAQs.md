@@ -1,4 +1,4 @@
-## FAQs related to Settlement 
+## <a id='settlement'>FAQs related to Settlement</a>
 #### 1. What are all payments settlement options there for merchants?
 iPint holds the funds in its wallet temporarily till they are settled. You are given the option to chose your payout preference in your Merchant account. 
 You can receive a settlement in stable Virtual currency or Fiat currency. 
