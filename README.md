@@ -5,6 +5,11 @@
   * [Integrating with iPint](#integrating_with_ipint)
   * [Checkout Page](#checkout_page)
   * [API Reference](#api_reference)
+    * [/checkout](#checkout_endpoint)
+    * [/invoice](#invoice_endpoint)
+    * [Example code for authenticated endpoints](#example_code_for_authentcated_endpoints)
+      * [Javascript](#javascript_code)
+      * [Python](#python_code)
 
 ## <a name="introduction_">Introduction</a>
 Wecolme to iPint! For merchants and businesses accepting payments is limited to 'fiat currencies' through traditional means. Traditional method are costly, inefficient and risk prone. They are geographically restrictive.
@@ -78,3 +83,173 @@ curl sample code
     curl -H "Content-Type: application/json" -H "apikey: your-api-key" -X POST -d '{"client_email_id":"customer-email-id","client_preferred_fiat_currency":"local-currency-code", "merchant_id": "merchant-id"}' https://api.ipint.io:8003/checkout
 
 `
+
+##### <a name="invoice_endpoint">Invoice</a>
+To get payment status and details. Use the id that you got from the [/checkout](#checkout_endpoint) endpoint.
+* ###### URL
+  /invoice
+* ###### Method
+  GET
+* ###### Headers
+  content-type: application/json
+  
+  apikey: your-api-key
+  
+  signature: [hmac-signature-using-your-api-secret](#example_code_for_authentcated_endpoints)
+  
+  nonce: current-unix-time
+* ###### URL Params
+  id : the id you got from [/checkout](#checkout_endpoint) endpoint
+* ###### Data Params
+  None
+  
+curl sample code
+```
+curl --location --request GET 'https://api.ipint.io:8003/invoice?id=id-from-the-response-of-onboard-endpoint' \
+--header 'content-type: application/json' \
+--header 'apikey: your-api-key' \
+--header 'signature: hmac-signature-using-your-api-secret' \
+--header 'nonce: current-unix-time' 
+```
+
+#### <a name="example_code_for_authentcated_endpoints">Example code for authenticated endpoints</a>
+##### <a name="javascript_code">Javascript</a>
+```
+const CryptoJS = require('crypto-js') // Standard JavaScript cryptography library
+const request = require('request')
+
+const apiKey = 'paste key here'
+const apiSecret = 'paste secret here'
+
+const apiPath = '/say' // Example path
+//const apiPath = '/say?id=123' // Example path with query params
+
+const nonce = (Date.now() * 1000).toString() // Standard nonce generator. Timestamp * 1000
+
+const body = {} // Field you may change depending on endpoint
+
+let signature = '/api/' + nonce + apiPath  // GET method
+// let signature = '/api/' + nonce + apiPath + JSON.stringify(body)  // POST method
+// Consists of the word api as it is and  then nonce, api path and request body
+// if api method is GET, also add query params along with the api path if any and do not add body
+console.log(signature)
+
+const sig = CryptoJS.HmacSHA384(signature, apiSecret).toString()
+// The authentication signature is hashed using the private key
+console.log(sig)
+
+
+const options = {
+url: 'https://api.ipint.io:8003'+apiPath,
+headers: { 'nonce': nonce, 'apikey': apiKey, 'signature': sig }, body: body, json: true }
+console.log(options)
+
+// to call GET method
+request(options, function (error, response, body) {
+// Logs the error if one occurred
+console.error('error:', error); 
+
+// Logs the response status code if a response was received
+console.log('statusCode:', response && response.statusCode); 
+
+// Logs the response body
+console.log('body:', body); 
+
+});
+
+//  // to call POST method
+//  request.post(options, (error, response, body) => { //  // Logs the error if one occurred
+//  console.error('error:', error);
+
+//  // Logs the response status code if a response was received
+//  console.log('statusCode:', response && response.statusCode);
+//  // Logs the response body
+//  console.log(body);
+//})
+```
+
+##### <a name="python_code">Python</a>
+```
+import hashlib
+import hmac
+import json
+import requests
+import time
+BASE_URL = "https://api.ipint.io:8003"  # mainnet
+# BASE_URL = "https://api.ipint.io:8002"  # testnet
+API_KEY = "your ipint api key"
+API_SECRET = "your ipint api secret"
+NONCE = str(int(time.time()))
+
+
+class TestiPint:
+    def __init__(self, api_key=API_KEY, api_secret=API_SECRET, base_url=BASE_URL, nonce=NONCE):
+        self.apikey = api_key
+        self.apisecret = api_secret
+        self.nonce = nonce
+        self.baseurl = base_url
+        
+    def hmacsha384(self, message):
+        inp = message.encode()
+        secret = self.apisecret.encode()
+        digest_maker = hmac.new(secret, inp, hashlib.sha384)
+        res = digest_maker.hexdigest()
+        return res
+        
+    def get_headers(self, api_path, body=None):
+        print("\nfunction get_header received params: ")
+        print("\napi_path: ", api_path)
+        print("\nbody: ", body)
+        nonce = self.nonce
+        if body:
+            signature = "/api/{}{}{}".format(nonce, api_path, json.dumps(body))
+        else:
+            signature = "/api/{}{}".format(nonce, api_path)
+        print("\nsignature ", signature)
+        sig = self.hmacsha384(signature)
+        headers = {
+        'nonce': nonce,
+        'apikey': self.apikey,
+        'signature': sig,
+        'content-type': "application/json"
+        }
+        return headers
+        
+    def ping(self):
+        api_path = '/say'
+        url = self.baseurl + api_path
+        print("\napi url ", url)body = {}
+        headers = self.get_headers(api_path, body)
+        res = requests.get(url, headers=headers)
+        print(res.status_code)
+        print(res.text)
+        print(res.json())
+        
+    def onboard_client(self, client_email_id, client_preferred_fiat_currency='INR'):
+        api_path = '/onboard'
+        url = self.baseurl + api_path
+        print("\napi url ", url)
+        body = {
+        "client_email_id": client_email_id,
+        "client_preferred_fiat_currency": client_preferred_fiat_currency
+        }
+        headers = self.get_headers(api_path, body)
+        json_body = json.dumps(body)
+        res = requests.post(url=url, data=json_body, headers=headers)
+        print(res.status_code)
+        print(res.text)
+        print(res.json())
+        
+    def get_invoice(self, invoice_id, hist=False):
+        api_path = '/invoice?id={}'.format(invoice_id)
+        if hist:
+        api_path += '&hist=true'
+        url = self.baseurl + api_path
+        body = {}
+        headers = self.get_headers(api_path, body)
+        res = requests.get(url, headers=headers)
+        print(res.status_code)
+        print(res.text)
+        print(res.json())
+        return res.json()
+```
