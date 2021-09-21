@@ -35,7 +35,7 @@ Check <a href="https://ipint.io/demo-checkout/" target="_blank">Demo</a>
   * #### Redirect to iPint
      Simple to implement, open in iPint secure page
 ### <a name="checkout_page">Checkout Page</a>
-To open iPint checkout page, redirect to https:ipint.io/invoice?id=fetch-id-from-the-folliwing-step
+To open iPint checkout page, redirect to https:ipint.io/checkout?id=fetch-id-from-the-following-step
 <br /> To get id to be fetched in the redirect url, call [/checkout](#checkout_endpoint) endpoint.
 ### <a name="api_reference">API Reference</a>
 - All endpoints return either a JSON object or array.
